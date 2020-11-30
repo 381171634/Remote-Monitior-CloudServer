@@ -1,5 +1,4 @@
-#include "server.h"
-#include "app.h"
+#include "includes.h"
 
 unsigned int SocketUsed = 0;								//使用中的套接字个数
 SOCKET_SCB s_scb[SOCKET_MAX_NUM];							//套接字块

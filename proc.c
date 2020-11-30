@@ -1,6 +1,4 @@
-#include "proc.h"
-#include "server.h"
-#include "clientClass.h"
+#include "includes.h"
 //协议初始化
 static void proc_procInit(recvChannelfTypedef *procRBuf)
 {

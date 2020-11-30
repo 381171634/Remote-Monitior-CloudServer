@@ -1,7 +1,4 @@
-#include "server.h"
-#include "proc.h"
-#include "app.h"
-#include "database.h"
+#include "includes.h"
 
 int main()
 {

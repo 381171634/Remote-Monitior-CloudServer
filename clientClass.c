@@ -1,6 +1,4 @@
-#include "clientClass.h"
-#include "database.h"
-#include "server.h"
+#include "includes.h"
 
 static int api_cc_init(clientClassTypedef *cc,int SocketNbr)
 {

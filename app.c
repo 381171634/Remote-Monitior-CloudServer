@@ -1,8 +1,4 @@
-#include "app.h"
-#include "proc.h"
-#include "server.h"
-#include "database.h"
-#include "clientClass.h"
+#include "includes.h"
 
 void showRBcontent(clientClassTypedef *cc)
 {
