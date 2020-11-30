@@ -25,7 +25,7 @@
 ├── sqlite3ext.h  
 ├── sqlite3.h  
 └── sqlite3lib        //sqlite链接库  
-        ├── libsqlite3.so -> libsqlite3.so.0.8.6  
-        ├── libsqlite3.so.0 -> libsqlite3.so.0.8.6  
-        └── libsqlite3.so.0.8.6  
+　　├── libsqlite3.so -> libsqlite3.so.0.8.6  
+　　├── libsqlite3.so.0 -> libsqlite3.so.0.8.6  
+　　└── libsqlite3.so.0.8.6  
 
