@@ -7,5 +7,6 @@
 #include "database.h"
 #include "proc.h"
 #include "server.h"
+#include "common.h"
 
 #endif

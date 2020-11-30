@@ -1,13 +1,20 @@
+/*
+ ============================================================================
+ Name        : main.c
+ Author      : wy
+ Version     :
+ Copyright   : Your copyright notice
+ Description : 主程序
+ ============================================================================
+ */
+
 #include "includes.h"
 
 int main()
 {
-	int SocketNbr = 0;
+	int s_scb_nbr = 0;
 	struct sockaddr_in client;
 	socklen_t len = sizeof(client);
-	
-	SocketSCBInit();
-	mutext_init(&mutex);
 
 	//createDbForTest();
 	//return;
@@ -17,39 +24,39 @@ int main()
 
 	if(listen_sock < 0)
 	{
-		printf("server init fail\n");
+		DBG_PRT("server init fail\n");
 		return 0;
 	}
 
 	while(1)
 	{
 		//检查是否还有可用套接字
-		for(SocketNbr = 0;SocketNbr < SOCKET_MAX_NUM; SocketNbr++)
+		for(s_scb_nbr = 0;s_scb_nbr < SOCKET_MAX_NUM; s_scb_nbr++)
 		{
-			if(s_scb[SocketNbr].socket_id < 0)
+			if(s_scb[s_scb_nbr].socket_id < 0)
 			{
 				break;
 			}
 		}
 
-		if(SocketNbr < SOCKET_MAX_NUM)
+		if(s_scb_nbr < SOCKET_MAX_NUM)
 		{
 			//接入client
-			s_scb[SocketNbr].socket_id = accept(listen_sock,(struct sockaddr*)&client,&len);
-			if(s_scb[SocketNbr].socket_id < 0)
+			s_scb[s_scb_nbr].socket_id = accept(listen_sock,(struct sockaddr*)&client,&len);
+			if(s_scb[s_scb_nbr].socket_id < 0)
 			{
-				//printf("accept error\n");
-				s_scb[SocketNbr].socket_id = -1;
-				memset(&s_scb[SocketNbr].client_info,0,sizeof(struct sockaddr_in));
+				//DBG_PRT("accept error\n");
+				s_scb[s_scb_nbr].socket_id = -1;
+				memset(&s_scb[s_scb_nbr].client_info,0,sizeof(struct sockaddr_in));
 			}
 			else
 			{
-				connect_in(SocketNbr,&client);
+				connect_in(s_scb_nbr,&client);
 			}
 		}
 		else
 		{
-			//printf("socket connected FULL\n");
+			//DBG_PRT("socket connected FULL\n");
 		}
 
 	}

@@ -3,6 +3,7 @@
 #include "proc.h"
 #include "data.h"
 #include "clientClass.h"
+#include "common.h"
 
 typedef enum{
     CTRL_DEV_ONLINE = 0,        //设备上线
@@ -13,13 +14,13 @@ typedef enum{
     CTRL_PHONE_QUERY,           //手机查询历史记录
     CTRL_PHONE_FOLLOW_ACK = 0x14,//手机后续帧应答
     CTRL_END,
-}CtrlTypedef;
+}CtrlTypedef;                   
 
 typedef struct{
-    unsigned char procID;
+    uint8_t procID;
     int (*procDeal)(clientClassTypedef *cc);
-}ProcScriptTypedef;//协议处理脚本结构体
+}ProcScriptTypedef;             //协议处理脚本结构体
 
-void app_process(int SocketNbr);
+void app_process(int s_scb_nbr);
 
 #endif

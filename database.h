@@ -5,17 +5,6 @@
 #include "data.h"
 #include "clientClass.h"
 
-#define ENABLE_DBG      1
-
-#if (ENABLE_DBG == 1)
-#define DB_PRT(fmt...)   \
-    do {\
-        printf("[%s]-%d: ", __FUNCTION__, __LINE__);\
-        printf(fmt);\
-    }while(0)
-#else
-#define DB_PRT(fmt...)
-#endif
 
 #define PATH_SIZE           128
 #define MAX_RECORD_CNT      (24*31)
@@ -36,7 +25,7 @@ typedef enum{
 
 typedef struct{
     int findcnt;
-    unsigned char dev_id[17];
+    uint8_t dev_id[17];
     int starttick;
     int EndTick;
     SampleDataTypedef sData[MAX_RECORD_CNT];//查找结果缓存，最大支持查询一个月
@@ -48,7 +37,7 @@ typedef struct{
     int (*devOnline)(recordTypedef *record,sqlite3 *db);    //设备上线
     int (*phoneOnline)(recordTypedef *record,sqlite3 *db);  //手机上线
     int (*devPublish)(recordTypedef *record,sqlite3 *db);   //设备上报
-    int (*phoneQuery)(unsigned char *dev_id,int startTick,int endTick,foundRecordsCacheTypedef *pRecord,sqlite3 *db);//手机按时间段查询
+    int (*phoneQuery)(uint8_t *dev_id,int startTick,int endTick,foundRecordsCacheTypedef *pRecord,sqlite3 *db);//手机按时间段查询
 }api_DataBaseTypedef;   //数据库上层接口
 
 //*******************************************

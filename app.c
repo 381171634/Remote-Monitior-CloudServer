@@ -1,8 +1,22 @@
+/*
+ ============================================================================
+ Name        : app.c
+ Author      : wy
+ Version     :
+ Copyright   : Your copyright notice
+ Description : 服务器应用层
+ ============================================================================
+ */
+
 #include "includes.h"
 
+/*============================================================================
+ 收到报文后打印 用于服务器调试
+ cc ：客户端指针
+ ============================================================================*/
 void showRBcontent(clientClassTypedef *cc)
 {
-    printf("get from socketNbr %d:",cc->SocketNbr);
+    DBG_PRT("get from s_scb_nbr %d:",cc->s_scb_nbr);
     for(int i = 0;i < cc->recvBuf.pWrite_contentBuf;i++)
     {
         printf("%02x ",cc->recvBuf.contentBuf[i]);
@@ -12,17 +26,22 @@ void showRBcontent(clientClassTypedef *cc)
     printf("\n");
 }
 
-//==================================================================
-//协议处理方法
-//==================================================================
 
+/*============================================================================
+ 协议处理方法
+ ============================================================================*/
+
+/*============================================================================
+ 设备上线处理
+ cc ：客户端指针
+ ============================================================================*/
 static int deal_dev_online(clientClassTypedef *cc)
 {
-    int res = 0;
+    int res = FALSE;
     char ackBuf[PROC_CONTENT_LEN] = {0};
     unsigned short len_t = 4;
-    unsigned char ackLen = 0;
-    unsigned char *p = &cc->recvBuf.contentBuf[1];
+    uint8_t ackLen = 0;
+    uint8_t *p = &cc->recvBuf.contentBuf[1];
     recordTypedef record;
     memset((void *)&record,0,sizeof(recordTypedef));
 
@@ -34,46 +53,50 @@ static int deal_dev_online(clientClassTypedef *cc)
         p += sizeof(int);
         memcpy((void *)record.dev_id,p,16);
 
-        printf("dev_time = %d\ndev_id = %s\n",record.sData.timeTick,record.dev_id);
+        DBG_PRT("dev_time = %d\ndev_id = %s\n",record.sData.timeTick,record.dev_id);
         //operate database
         res = api_DB.devOnline(&record,cc->db);
-        if(res == SQLITE_OK)
+        if(res == TRUE)
         {
-            res = 1;
             //ack;
             ackBuf[len_t] = cc->recvBuf.contentBuf[0];
             ackLen = api_procComm.makeAproc(ackBuf,1);
             send(cc->socket,ackBuf,ackLen,0);
         }
-        else
-        {
-            res = 0;
-        }  
+
     }
     
     return res ;
 }
 
+/*============================================================================
+ 设备心跳
+ cc ：客户端指针
+ ============================================================================*/
 static int deal_dev_heart(clientClassTypedef *cc)
 {
-    int res = 0;
+    int res = FALSE;
 
     showRBcontent(cc);
 
-    printf("dev heart beat\n");
+    DBG_PRT("dev heart beat\n");
 
-    res = 1;
+    res = TRUE;
 
     return res ;
 }
 
+/*============================================================================
+ 设备上报信息
+ cc ：客户端指针
+ ============================================================================*/
 static int deal_dev_publish(clientClassTypedef *cc)
 {
-    int res = 0;
+    int res = FALSE;
     char ackBuf[PROC_CONTENT_LEN] = {0};
     unsigned short len_t = 4;
-    unsigned char ackLen = 0;
-    unsigned char *p = &cc->recvBuf.contentBuf[1];
+    uint8_t ackLen = 0;
+    uint8_t *p = &cc->recvBuf.contentBuf[1];
     recordTypedef record;
     memset((void *)&record,0,sizeof(recordTypedef));
 
@@ -88,12 +111,12 @@ static int deal_dev_publish(clientClassTypedef *cc)
         record.dev_id[16] = 0;
         memcpy((void *)&record.sData,p,sizeof(SampleDataTypedef));
 
-        printf("dev_time = %d\ndev_id = %s\n",record.sData.timeTick,record.dev_id);
-        printf("tempture:%.3f\n",     (float)record.sData.tempture / 1000);
-        printf("humidity:%.3f\n",     (float)record.sData.humidity / 1000);
-        printf("HCHO:%.3f\n",         (float)record.sData.HCHO / 1000);
-        printf("CO2:%.3f\n",          (float)record.sData.CO2 / 1000);
-        printf("cellVoltage:%.3f\n",  (float)record.sData.cellVoltage / 1000);
+        DBG_PRT("dev_time = %d\ndev_id = %s\n",record.sData.timeTick,record.dev_id);
+        DBG_PRT("tempture:%.3f\n",     (float)record.sData.tempture / 1000);
+        DBG_PRT("humidity:%.3f\n",     (float)record.sData.humidity / 1000);
+        DBG_PRT("HCHO:%.3f\n",         (float)record.sData.HCHO / 1000);
+        DBG_PRT("CO2:%.3f\n",          (float)record.sData.CO2 / 1000);
+        DBG_PRT("cellVoltage:%.3f\n",  (float)record.sData.cellVoltage / 1000);
         //operate database
         res = api_DB.devPublish(&record,cc->db);
         if(res == TRUE)
@@ -110,13 +133,17 @@ static int deal_dev_publish(clientClassTypedef *cc)
     return res ;
 }
 
+/*============================================================================
+ 手机上线
+ cc ：客户端指针
+ ============================================================================*/
 static int deal_phone_online(clientClassTypedef *cc)
 {
-    int res = 0;
+    int res = FALSE;
     int len_t = 4;
-    unsigned char ackBuf[PROC_CONTENT_LEN] = {0};
+    uint8_t ackBuf[PROC_CONTENT_LEN] = {0};
     unsigned short ackLen = 0;
-    unsigned char *p = &cc->recvBuf.contentBuf[1];
+    uint8_t *p = &cc->recvBuf.contentBuf[1];
     recordTypedef record;
     memset((void *)&record,0,sizeof(recordTypedef));
 
@@ -155,14 +182,18 @@ static int deal_phone_online(clientClassTypedef *cc)
     return res;
 }
 
+/*============================================================================
+ 手机查询
+ cc ：客户端指针
+ ============================================================================*/
 static int deal_phone_query(clientClassTypedef *cc)
 {
-    int res = 0;
+    int res = FALSE;
     int len_t = 4;
-    unsigned char ackBuf[PROC_CONTENT_LEN] = {0};
+    uint8_t ackBuf[PROC_CONTENT_LEN] = {0};
     unsigned short ackLen = 0;
-    unsigned char *p = &cc->recvBuf.contentBuf[1];
-    unsigned char dev_id[17] = {0};
+    uint8_t *p = &cc->recvBuf.contentBuf[1];
+    uint8_t dev_id[17] = {0};
     int startTick = 0;
     int endTick = 0;
     int recordSentCnt = 0;
@@ -199,7 +230,7 @@ static int deal_phone_query(clientClassTypedef *cc)
                 //有后续帧的应答 第一包
                 ackBuf[len_t++] = 0x14;
                 recordSentCnt = (PROC_CONTENT_LEN - 6 - 2) / sizeof(SampleDataTypedef);
-                printf("recordSentCnt:%d\n",recordSentCnt);
+                DBG_PRT("recordSentCnt:%d\n",recordSentCnt);
                 memcpy(ackBuf + len_t,&recordSentCnt,2);
                 len_t += 2;
                 memcpy(ackBuf + len_t,&cc->pRecord.recordBuf[cc->pRecord.pUpload],sizeof(SampleDataTypedef) * recordSentCnt);
@@ -226,18 +257,22 @@ static int deal_phone_query(clientClassTypedef *cc)
     return res;
 }
 
+/*============================================================================
+ 手机后续帧应答处理
+ cc ：客户端指针
+ ============================================================================*/
 static int deal_phone_follow_ack(clientClassTypedef *cc)
 {
-    int res = 0;
+    int res = FALSE;
     int len_t = 4;
-    unsigned char ackBuf[PROC_CONTENT_LEN] = {0};
+    uint8_t ackBuf[PROC_CONTENT_LEN] = {0};
     unsigned short ackLen = 0;
     int recordSentCnt = 0;
 
     if(cc->pRecord.pkgTotal == 1)
     {
         recordSentCnt = cc->pRecord.lastPkgCnt;
-        printf("cc->pRecord.pkgTotal:%d\n",cc->pRecord.pkgTotal);
+        DBG_PRT("cc->pRecord.pkgTotal:%d\n",cc->pRecord.pkgTotal);
         ackBuf[len_t++] = 0x04;
         memcpy(ackBuf + len_t,&recordSentCnt,2);
         len_t += 2;
@@ -252,7 +287,7 @@ static int deal_phone_follow_ack(clientClassTypedef *cc)
     }
     else if(cc->pRecord.pkgTotal > 1)
     {
-        printf("cc->pRecord.pkgTotal:%d\n",cc->pRecord.pkgTotal);
+        DBG_PRT("cc->pRecord.pkgTotal:%d\n",cc->pRecord.pkgTotal);
 
         ackBuf[len_t++] = 0x14;
         recordSentCnt = (PROC_CONTENT_LEN - 6 - 2) / sizeof(SampleDataTypedef);
@@ -274,9 +309,9 @@ static int deal_phone_follow_ack(clientClassTypedef *cc)
     return res;
 }
 
-//==================================================================
-//协议处理脚本注册
-//==================================================================
+/*============================================================================
+ 协议脚本注册
+ ============================================================================*/
 
 static ProcScriptTypedef procScript[] = {
     {CTRL_DEV_ONLINE,   deal_dev_online},
@@ -287,14 +322,14 @@ static ProcScriptTypedef procScript[] = {
     {CTRL_PHONE_FOLLOW_ACK,deal_phone_follow_ack},
 };
 
-//==================================================================
-//单个client实例化
-//==================================================================
-void app_process(int SocketNbr)
+/*============================================================================
+ app层流程
+ ============================================================================*/
+void app_process(int s_scb_nbr)
 {
     int res,res_getProc,i;
     clientClassTypedef cc;
-    api_cc.init(&cc,SocketNbr);
+    api_cc.init(&cc,s_scb_nbr);
     
     while(1)
     {
@@ -304,10 +339,10 @@ void app_process(int SocketNbr)
         //超时或错误，退出线程，退出tcp链接
         if(res <= 0)
         {
-            printf("app_process will exit\n");
-            if((unsigned char *)cc.pRecord.recordBuf != 0)
+            DBG_PRT("app_process will exit\n");
+            if((uint8_t *)cc.pRecord.recordBuf != 0)
             {
-                printf("free pRecord cause pRecord=%x\n",cc.pRecord.recordBuf);
+                DBG_PRT("free pRecord cause pRecord=%x\n",cc.pRecord.recordBuf);
                 free((void *)cc.pRecord.recordBuf);
                 memset((void *)&cc.pRecord,0,sizeof(foundRecordsCacheTypedef));
             }

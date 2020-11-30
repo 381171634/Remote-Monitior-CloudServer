@@ -4,7 +4,9 @@
  Author      : wy
  Version     :
  Copyright   : Your copyright notice
- Description : Hello World in C, Ansi-style
+ Description : 数据库操作，驱动+应用二合一
+                一张总表，记录每个设备的设备id、上一次上线时间、上一次上报数据
+                每个以每个设备id命名子表，记录该设备上传过的数据
  ============================================================================
  */
 
@@ -15,52 +17,54 @@
 #include "math.h"
 #include "sys/time.h"
 
-//*******************************************
-//common define
-//*******************************************
+/*============================================================================
+ commin define
+ ============================================================================*/
 #define DATABASE_PATH       "MyDataBase.db"
 #define TOTAL_TABLE_NAME    "TotalTable"
 
 #define CMD_EXEC_SIZE       1024
 
+//总表表头
 #define DB_TOTAL_TABLE_PARA     "(DevID TEXT PRIMARY KEY,Tick integer,\
                         Tempture integer,Humidity integer,HCHO integer,CO2 integer,CellVoltage integer)"
-
+//子表表头
 #define DB_CHILD_TABLE_PARA     "(Tick integer PRIMARY KEY,\
                         Tempture integer,Humidity integer,HCHO integer,CO2 integer,CellVoltage integer)"
-
+//插入时的sql配合语句
 #define INSERT_TOTAL_TABLE_PARA "(DevID,Tick,Tempture,Humidity,HCHO,CO2,CellVoltage)"
 #define INSERT_CHILD_TABLE_PARA "(Tick,Tempture,Humidity,HCHO,CO2,CellVoltage)"
 
-//*******************************************
-//static define
-//*******************************************
+
 
 typedef struct{
     int (*insert)   (sqlite3 * db,recordTypedef *record,int type);
     int (*find)     (sqlite3 * db,recordFindTypedef *recordfind,int type);
     int (*change)   (sqlite3 * db,recordTypedef *record,int type);
-}DB_BspTypedef;         //数据库增删查改底层
+}DB_BspTypedef;         //数据库增删查改底层 暂时未用到删
 
-typedef struct{
-    int cnt;
-    int ticks[300];
-    int ids[300];
-}S_FindTickTypedef;     //按Tick查询时使用 
 
-//*******************************************
-//static global
-//*******************************************
+/*============================================================================
+ static global
+ ============================================================================*/
 static char g_path[PATH_SIZE] = {0};
 static char cmd_exec[CMD_EXEC_SIZE] = {0};
-static S_FindTickTypedef s_findtick;
 
 static void clear_cmd_exec()
 {
     cmd_exec[0] = 0;
 }
 
-//多进程共同操作数据库函数
+/*============================================================================
+ 数据库执行函数
+ db ：数据库指针
+ sql：数据库命令
+ callback：数据库运行回调函数
+ para：回调函数传参
+ errmsg：错误信息
+
+ return：运行结果
+ ============================================================================*/
 static int loop_sqlite3_exec(
   sqlite3* db,                                  
   const char *sql,                           
@@ -80,7 +84,7 @@ static int loop_sqlite3_exec(
         res = sqlite3_exec(db,sql,callback,para,errmsg);
         if(res == SQLITE_BUSY)
         {
-            DB_PRT("database is busy,left try time=%d\n",cnt);
+            DBG_PRT("database is busy,left try time=%d\n",cnt);
             usleep(500000);
             continue;
         }
@@ -89,14 +93,18 @@ static int loop_sqlite3_exec(
 
     gettimeofday(&tval2,NULL);
 
-    printf("exec time past %d us\n",(tval1.tv_sec==tval2.tv_sec ? (tval2.tv_usec - tval1.tv_usec):((tval2.tv_sec - tval1.tv_sec - 1)*1000000 + 1000000-tval1.tv_usec + tval2.tv_usec)));
+    DBG_PRT("exec time past %d us\n",(tval1.tv_sec==tval2.tv_sec ? (tval2.tv_usec - tval1.tv_usec):((tval2.tv_sec - tval1.tv_sec - 1)*1000000 + 1000000-tval1.tv_usec + tval2.tv_usec)));
 
     return res;
 }
 
-//*******************************************
-//底层接口->DB_BspTypedef中的函数
-//*******************************************
+/*============================================================================
+ 总表查询回调
+ para：回调函数传参
+ colNum：列序号
+ colValue：列内容 字符串类型
+ colName：列名称
+ ============================================================================*/
 static int find_total_table_callback(void *para,int colNum,char **colValue ,char **colName)
 {
     ((recordFindTypedef *)para)->findcnt++;
@@ -109,6 +117,13 @@ static int find_total_table_callback(void *para,int colNum,char **colValue ,char
     return 0;
 }
 
+/*============================================================================
+ 子表查询回调
+ para：回调函数传参
+ colNum：列序号
+ colValue：列内容 字符串类型
+ colName：列名称
+ ============================================================================*/
 static int find_child_table_callback(void *para,int colNum,char **colValue ,char **colName)
 {
     int index = ((recordFindTypedef *)para)->findcnt++ ;
@@ -125,11 +140,17 @@ static int find_child_table_callback(void *para,int colNum,char **colValue ,char
     return 0;
 }
 
-
+/*============================================================================
+ 底层-插入
+ db：数据库指针
+ record：操作需要的所有信息
+ type：插入类型
+ return：操作结果
+ ============================================================================*/
 static int bsp_insert   (sqlite3 * db,recordTypedef *record,int type)
 {
     int res = SQLITE_OK;
-    unsigned char cmd_exec[CMD_EXEC_SIZE] = {0};
+    uint8_t cmd_exec[CMD_EXEC_SIZE] = {0};
     char *errMsg = 0;
     char *addr = cmd_exec;
 
@@ -161,21 +182,28 @@ static int bsp_insert   (sqlite3 * db,recordTypedef *record,int type)
                                         );
     }
 
-    DB_PRT("%s\n",cmd_exec);
+    DBG_PRT("%s\n",cmd_exec);
     res = loop_sqlite3_exec(db,cmd_exec,NULL,NULL,&errMsg);
     if(res != SQLITE_OK)
     {
-        DB_PRT("insert fail with %d -%s\n",res,*errMsg);
+        DBG_PRT("insert fail with %d -%s\n",res,*errMsg);
     }
     sqlite3_free(errMsg);
     return res;
 }
 
+/*============================================================================
+ 底层-查
+ db：数据库指针
+ paramfind：操作需要的所有信息
+ type：插入类型
+ return：操作结果
+ ============================================================================*/
 static int bsp_find     (sqlite3 * db,recordFindTypedef *paramfind,int type)
 {
     int res = SQLITE_OK;
     char *errMsg = 0;
-    unsigned char cmd_exec[CMD_EXEC_SIZE] = {0};
+    uint8_t cmd_exec[CMD_EXEC_SIZE] = {0};
     int multiFlag = 0;
     int i;
     char *addr = cmd_exec;
@@ -189,12 +217,12 @@ static int bsp_find     (sqlite3 * db,recordFindTypedef *paramfind,int type)
         paramfind->findcnt = 0;
         snprintf(addr,CMD_EXEC_SIZE - strlen(cmd_exec),"DevID=\'%s\'",paramfind->dev_id);
 
-        DB_PRT("%s\n",cmd_exec);
+        DBG_PRT("%s\n",cmd_exec);
 
         res = loop_sqlite3_exec(db,cmd_exec,find_total_table_callback,(void *)paramfind,&errMsg);
         if(res != SQLITE_OK)
         {
-            DB_PRT("find fail with %d -%s\n",res,*errMsg);
+            DBG_PRT("find fail with %d -%s\n",res,*errMsg);
         }
     }
     else if(type == CHILD_TABLE)
@@ -206,12 +234,12 @@ static int bsp_find     (sqlite3 * db,recordFindTypedef *paramfind,int type)
         paramfind->findcnt = 0;
         snprintf(addr,CMD_EXEC_SIZE - strlen(cmd_exec),"Tick>=%d AND Tick<=%d",paramfind->starttick,paramfind->EndTick);
 
-        DB_PRT("%s\n",cmd_exec);
+        DBG_PRT("%s\n",cmd_exec);
 
         res = loop_sqlite3_exec(db,cmd_exec,find_child_table_callback,(void *)paramfind,&errMsg);
         if(res != SQLITE_OK)
         {
-            DB_PRT("find fail with %d -%s\n",res,*errMsg);
+            DBG_PRT("find fail with %d -%s\n",res,*errMsg);
         }
     }
 
@@ -220,10 +248,17 @@ static int bsp_find     (sqlite3 * db,recordFindTypedef *paramfind,int type)
     return res;
 }
 
+/*============================================================================
+ 底层-改
+ db：数据库指针
+ record：操作需要的所有信息
+ type：插入类型
+ return：操作结果
+ ============================================================================*/
 static int bsp_change(sqlite3 * db,recordTypedef *record,int type)
 {
     int res = SQLITE_OK;
-    unsigned char cmd_exec[CMD_EXEC_SIZE] = {0};
+    uint8_t cmd_exec[CMD_EXEC_SIZE] = {0};
     char *errMsg = 0;
     char *addr = cmd_exec;
 
@@ -250,22 +285,19 @@ static int bsp_change(sqlite3 * db,recordTypedef *record,int type)
                                         );
     }
 
-    DB_PRT("%s\n",cmd_exec);
+    DBG_PRT("%s\n",cmd_exec);
     res = loop_sqlite3_exec(db,cmd_exec,NULL,NULL,&errMsg);
     if(res != SQLITE_OK)
     {
-        DB_PRT("change fail with %d -%s\n",res,*errMsg);
+        DBG_PRT("change fail with %d -%s\n",res,*errMsg);
     }
     sqlite3_free(errMsg);
     return res;
 }
 
-
-
-
-//*******************************************
-//函数注册
-//*******************************************
+/*============================================================================
+ 底层接口封装注册
+ ============================================================================*/
 
 static DB_BspTypedef bsp_DB = {
     .insert     =   bsp_insert,
@@ -273,62 +305,76 @@ static DB_BspTypedef bsp_DB = {
     .change     =   bsp_change
 };
 
-//*******************************************
-//上层接口->DataBaseTypedef中的函数
-//*******************************************
 
+
+/*============================================================================
+ 接口层-初始化
+ db：数据库指针地址
+ ============================================================================*/
 static int api_init(sqlite3 **db)
 {
     int res = SQLITE_OK;
-    unsigned char cmd_exec[CMD_EXEC_SIZE] = {0};
+    uint8_t cmd_exec[CMD_EXEC_SIZE] = {0};
     res = sqlite3_open(DATABASE_PATH,db);
-    printf("db addr: %x\n",*db);
+    DBG_PRT("db addr: %x\n",*db);
     if(res != SQLITE_OK)
     {
-        DB_PRT("open fail with %d-%s\n",res,sqlite3_errmsg(*db));
+        DBG_PRT("open fail with %d-%s\n",res,sqlite3_errmsg(*db));
     }
 
     //创建表
     snprintf(cmd_exec,CMD_EXEC_SIZE,"create table if not exists \'%s\' %s",TOTAL_TABLE_NAME,DB_TOTAL_TABLE_PARA);
-    DB_PRT("%s\n",cmd_exec);
+    DBG_PRT("%s\n",cmd_exec);
     loop_sqlite3_exec(*db,cmd_exec,NULL,NULL,NULL);
 
     return res;
 }
 
+/*============================================================================
+ 接口层-去初始化
+ db：数据库指针
+ ============================================================================*/
 static int api_deinit(sqlite3 *db)
 {
     int res = SQLITE_OK;
     res = sqlite3_close(db);
     if(res != SQLITE_OK)
     {
-        DB_PRT("close fail with %d-%s\n",res,sqlite3_errmsg(db));
+        DBG_PRT("close fail with %d-%s\n",res,sqlite3_errmsg(db));
     }
 
     return res;
 }
 
+/*============================================================================
+ 接口层-设备上线
+ record：操作需要的所有信息
+ db：数据库指针地址
+ return：操作结果
+ ============================================================================*/
 static int api_dev_online(recordTypedef *record,sqlite3 *db)
 {
-    int res = SQLITE_OK;
+    int res = FALSE;
     recordFindTypedef recordFind;
     memset((void *)&recordFind,0,sizeof(recordFindTypedef));
     memcpy(recordFind.dev_id,record->dev_id,16);
 
     //创建表
     snprintf(cmd_exec,CMD_EXEC_SIZE,"create table if not exists \'dev_%s\' %s",record->dev_id,DB_CHILD_TABLE_PARA);
-    DB_PRT("%s\n",cmd_exec);
+    DBG_PRT("%s\n",cmd_exec);
     res = loop_sqlite3_exec(db,cmd_exec,NULL,NULL,NULL);
     if(res != SQLITE_OK)
     {
-        DB_PRT("api_dev_online create table fail with %d\n",res);
+        DBG_PRT("api_dev_online create table fail with %d\n",res);
+        res = FALSE;
     }
     else
     {
         res = bsp_DB.find(db,&recordFind,TOTAL_TABLE);
         if(res != SQLITE_OK)
         {
-            DB_PRT("api_dev_online find fail with %d\n",res);
+            res = FALSE;
+            DBG_PRT("api_dev_online find fail with %d\n",res);
         }
         else
         {
@@ -338,8 +384,13 @@ static int api_dev_online(recordTypedef *record,sqlite3 *db)
                 res = bsp_DB.insert(db,record,TOTAL_TABLE);
                 if(res != SQLITE_OK)
                 {
-                    DB_PRT("api_dev_online insert fail with %d\n",res);
+                    res = FALSE;
+                    DBG_PRT("api_dev_online insert fail with %d\n",res);
                 }
+                else
+                {
+                    res = TRUE;
+                } 
             }
             //已存在该ID的记录，则更新上线时间
             else
@@ -347,7 +398,12 @@ static int api_dev_online(recordTypedef *record,sqlite3 *db)
                 res = bsp_DB.change(db,record,UPDATE_ONLINE_TICK);
                 if(res != SQLITE_OK)
                 {
-                    DB_PRT("api_dev_online change fail with %d\n",res);
+                    res = FALSE;
+                    DBG_PRT("api_dev_online change fail with %d\n",res);
+                }
+                else
+                {
+                    res = TRUE;
                 }
             }
         }
@@ -357,7 +413,12 @@ static int api_dev_online(recordTypedef *record,sqlite3 *db)
     return res;
 }
 
-//res:1 dev exist   0:dev not exist
+/*============================================================================
+ 接口层-手机上线
+ record：操作需要的所有信息
+ db：数据库指针地址
+ return：操作结果
+ ============================================================================*/
 static int api_phone_online(recordTypedef *record,sqlite3 *db)
 {
     int res = SQLITE_OK;
@@ -386,6 +447,12 @@ static int api_phone_online(recordTypedef *record,sqlite3 *db)
     return res;
 }
 
+/*============================================================================
+ 接口层-设备上报数据
+ record：操作需要的所有信息
+ db：数据库指针地址
+ return：操作结果
+ ============================================================================*/
 static int api_devPublish(recordTypedef *record,sqlite3 *db)
 {
     int res = SQLITE_OK;
@@ -404,7 +471,16 @@ static int api_devPublish(recordTypedef *record,sqlite3 *db)
     return res;
 }
 
-static int api_phoneQuery(unsigned char *dev_id,int startTick,int endTick,foundRecordsCacheTypedef *pRecord,sqlite3 *db)
+/*============================================================================
+ 接口层-手机查询
+ dev_id:设备id
+ startTick：起始时间-世纪秒
+ endTick：结束时间-世纪秒
+ pRecord：查询结果指针
+ db：数据库指针地址
+ return：操作结果
+ ============================================================================*/
+static int api_phoneQuery(uint8_t *dev_id,int startTick,int endTick,foundRecordsCacheTypedef *pRecord,sqlite3 *db)
 {
     int res = SQLITE_OK;
     int lenOfOnePgk = PROC_CONTENT_LEN - 8;
@@ -425,13 +501,13 @@ static int api_phoneQuery(unsigned char *dev_id,int startTick,int endTick,foundR
             res = bsp_find(db,&recordFind,CHILD_TABLE);
             if(res == SQLITE_OK)
             {
-                DB_PRT("find records %d\n",recordFind.findcnt);
+                DBG_PRT("find records %d\n",recordFind.findcnt);
                 //找到时间段内的数据
                 if(recordFind.findcnt != 0)
                 {
                     if(recordFind.findcnt > MAX_RECORD_CNT)
                     {
-                        DB_PRT("only get 24 * 31 records\n");
+                        DBG_PRT("only get 24 * 31 records\n");
                         recordFind.findcnt = MAX_RECORD_CNT;
                     }
 
@@ -467,9 +543,9 @@ static int api_phoneQuery(unsigned char *dev_id,int startTick,int endTick,foundR
     return res;
 }
 
-//*******************************************
-//函数注册
-//*******************************************
+/*============================================================================
+ api层函数注册
+ ============================================================================*/
 api_DataBaseTypedef api_DB = {
     .init       =   api_init,
     .deinit     =   api_deinit,
@@ -479,7 +555,10 @@ api_DataBaseTypedef api_DB = {
     .phoneQuery =   api_phoneQuery
 };
 
-//为测试创建数据库
+/*============================================================================
+ 测试用，批量创建数据库数据
+ 用于测试数据库读写
+ ============================================================================*/
 void createDbForTest()
 {
     int i;

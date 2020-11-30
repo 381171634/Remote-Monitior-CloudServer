@@ -1,11 +1,10 @@
 #ifndef _DATA_H
 #define _DATA_H
 
-#define TRUE    1
-#define FALSE   0
+#include "common.h"
 
 typedef struct{
-    unsigned int    timeTick;   //时间戳
+    uint32_t        timeTick;   //时间戳
     int             tempture;   //温度
     int             humidity;   //湿度
     int             HCHO;       //甲醛
@@ -14,8 +13,8 @@ typedef struct{
 }SampleDataTypedef;//整数，除以1000保留到小数点后三位
 
 typedef struct{
-    unsigned char dev_id[17];
-    SampleDataTypedef sData;
+    uint8_t dev_id[17];         //设备id
+    SampleDataTypedef sData;    //设备数据
 }recordTypedef;
 
 #endif

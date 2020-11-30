@@ -1,6 +1,7 @@
 #ifndef _CLIENTCLASS_H
 #define _CLIENTCLASS_H
 
+#include "common.h"
 #include "proc.h"
 #include "sqlite3.h"
 #include "data.h"
@@ -14,18 +15,18 @@ typedef struct{
 }foundRecordsCacheTypedef;
 
 typedef struct{
-    int SocketNbr;
-    int socket;
-    sqlite3 *db;
-    recvChannelfTypedef recvBuf;
+    int s_scb_nbr;                  //套接字控制块序号
+    int socket;                     //套接字
+    sqlite3 *db;                    //数据库指针
+    recvChannelfTypedef recvBuf;    //接受缓存
 
-    foundRecordsCacheTypedef pRecord;
-}clientClassTypedef;
+    foundRecordsCacheTypedef pRecord;//查询历史
+}clientClassTypedef;                //客户端类
 
 typedef struct{
-    int (*init)(clientClassTypedef *cc,int SocketNbr);
+    int (*init)(clientClassTypedef *cc,int s_scb_nbr);
     int (*deinit)(clientClassTypedef *cc);
-}api_clientClassTypedef;
+}api_clientClassTypedef;            //客户端类对外api接口
 
 extern api_clientClassTypedef api_cc;
 

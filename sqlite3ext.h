@@ -68,7 +68,7 @@ struct sqlite3_api_routines {
   const void * (*column_origin_name16)(sqlite3_stmt*,int);
   const char * (*column_table_name)(sqlite3_stmt*,int);
   const void * (*column_table_name16)(sqlite3_stmt*,int);
-  const unsigned char * (*column_text)(sqlite3_stmt*,int iCol);
+  const uint8_t * (*column_text)(sqlite3_stmt*,int iCol);
   const void * (*column_text16)(sqlite3_stmt*,int iCol);
   int  (*column_type)(sqlite3_stmt*,int iCol);
   sqlite3_value* (*column_value)(sqlite3_stmt*,int iCol);
@@ -109,7 +109,7 @@ struct sqlite3_api_routines {
   const char * (*libversion)(void);
   int  (*libversion_number)(void);
   void *(*malloc)(int);
-  char * (*mprintf)(const char*,...);
+  char * (*mDBG_PRT)(const char*,...);
   int  (*open)(const char*,sqlite3**);
   int  (*open16)(const void*,sqlite3**);
   int  (*prepare)(sqlite3*,const char*,int,sqlite3_stmt**,const char**);
@@ -152,12 +152,12 @@ struct sqlite3_api_routines {
   int  (*value_int)(sqlite3_value*);
   sqlite_int64  (*value_int64)(sqlite3_value*);
   int  (*value_numeric_type)(sqlite3_value*);
-  const unsigned char * (*value_text)(sqlite3_value*);
+  const uint8_t * (*value_text)(sqlite3_value*);
   const void * (*value_text16)(sqlite3_value*);
   const void * (*value_text16be)(sqlite3_value*);
   const void * (*value_text16le)(sqlite3_value*);
   int  (*value_type)(sqlite3_value*);
-  char *(*vmprintf)(const char*,va_list);
+  char *(*vmDBG_PRT)(const char*,va_list);
   /* Added ??? */
   int (*overload_function)(sqlite3*, const char *zFuncName, int nArg);
   /* Added by 3.3.13 */
@@ -253,7 +253,7 @@ struct sqlite3_api_routines {
   int (*bind_blob64)(sqlite3_stmt*,int,const void*,sqlite3_uint64,
                      void(*)(void*));
   int (*bind_text64)(sqlite3_stmt*,int,const char*,sqlite3_uint64,
-                      void(*)(void*),unsigned char);
+                      void(*)(void*),uint8_t);
   int (*cancel_auto_extension)(void(*)(void));
   int (*load_extension)(sqlite3*,const char*,const char*,char**);
   void *(*malloc64)(sqlite3_uint64);
@@ -263,7 +263,7 @@ struct sqlite3_api_routines {
   void (*result_blob64)(sqlite3_context*,const void*,sqlite3_uint64,
                         void(*)(void*));
   void (*result_text64)(sqlite3_context*,const char*,sqlite3_uint64,
-                         void(*)(void*), unsigned char);
+                         void(*)(void*), uint8_t);
   int (*strglob)(const char*,const char*);
   /* Version 3.8.11 and later */
   sqlite3_value *(*value_dup)(const sqlite3_value*);
@@ -435,7 +435,7 @@ typedef int (*sqlite3_loadext_entry)(
 #define sqlite3_libversion             sqlite3_api->libversion
 #define sqlite3_libversion_number      sqlite3_api->libversion_number
 #define sqlite3_malloc                 sqlite3_api->malloc
-#define sqlite3_mprintf                sqlite3_api->mprintf
+#define sqlite3_mDBG_PRT                sqlite3_api->mDBG_PRT
 #define sqlite3_open                   sqlite3_api->open
 #define sqlite3_open16                 sqlite3_api->open16
 #define sqlite3_prepare                sqlite3_api->prepare
@@ -484,7 +484,7 @@ typedef int (*sqlite3_loadext_entry)(
 #define sqlite3_value_text16be         sqlite3_api->value_text16be
 #define sqlite3_value_text16le         sqlite3_api->value_text16le
 #define sqlite3_value_type             sqlite3_api->value_type
-#define sqlite3_vmprintf               sqlite3_api->vmprintf
+#define sqlite3_vmDBG_PRT               sqlite3_api->vmDBG_PRT
 #define sqlite3_vsnprintf              sqlite3_api->xvsnprintf
 #define sqlite3_overload_function      sqlite3_api->overload_function
 #define sqlite3_prepare_v2             sqlite3_api->prepare_v2

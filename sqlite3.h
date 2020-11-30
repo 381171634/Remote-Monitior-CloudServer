@@ -962,7 +962,7 @@ struct sqlite3_io_methods {
 ** is the name of the pragma and the third element is the argument to the
 ** pragma or NULL if the pragma has no argument.  ^The handler for an
 ** [SQLITE_FCNTL_PRAGMA] file control can optionally make the first element
-** of the char** argument point to a string obtained from [sqlite3_mprintf()]
+** of the char** argument point to a string obtained from [sqlite3_mDBG_PRT()]
 ** or the equivalent and that string will become the result of the pragma or
 ** the error message if the pragma fails. ^If the
 ** [SQLITE_FCNTL_PRAGMA] file control returns [SQLITE_NOTFOUND], then normal 
@@ -2764,14 +2764,14 @@ SQLITE_API void sqlite3_free_table(char **result);
 /*
 ** CAPI3REF: Formatted String Printing Functions
 **
-** These routines are work-alikes of the "printf()" family of functions
+** These routines are work-alikes of the "DBG_PRT()" family of functions
 ** from the standard C library.
 ** These routines understand most of the common formatting options from
-** the standard library printf() 
+** the standard library DBG_PRT() 
 ** plus some additional non-standard formats ([%q], [%Q], [%w], and [%z]).
-** See the [built-in printf()] documentation for details.
+** See the [built-in DBG_PRT()] documentation for details.
 **
-** ^The sqlite3_mprintf() and sqlite3_vmprintf() routines write their
+** ^The sqlite3_mDBG_PRT() and sqlite3_vmDBG_PRT() routines write their
 ** results into memory obtained from [sqlite3_malloc64()].
 ** The strings returned by these two routines should be
 ** released by [sqlite3_free()].  ^Both routines return a
@@ -2799,10 +2799,10 @@ SQLITE_API void sqlite3_free_table(char **result);
 **
 ** ^The sqlite3_vsnprintf() routine is a varargs version of sqlite3_snprintf().
 **
-** See also:  [built-in printf()], [printf() SQL function]
+** See also:  [built-in DBG_PRT()], [DBG_PRT() SQL function]
 */
-SQLITE_API char *sqlite3_mprintf(const char*,...);
-SQLITE_API char *sqlite3_vmprintf(const char*, va_list);
+SQLITE_API char *sqlite3_mDBG_PRT(const char*,...);
+SQLITE_API char *sqlite3_vmDBG_PRT(const char*, va_list);
 SQLITE_API char *sqlite3_snprintf(int,char*,const char*, ...);
 SQLITE_API char *sqlite3_vsnprintf(int,char*,const char*, va_list);
 
@@ -4401,7 +4401,7 @@ SQLITE_API int sqlite3_bind_null(sqlite3_stmt*, int);
 SQLITE_API int sqlite3_bind_text(sqlite3_stmt*,int,const char*,int,void(*)(void*));
 SQLITE_API int sqlite3_bind_text16(sqlite3_stmt*, int, const void*, int, void(*)(void*));
 SQLITE_API int sqlite3_bind_text64(sqlite3_stmt*, int, const char*, sqlite3_uint64,
-                         void(*)(void*), unsigned char encoding);
+                         void(*)(void*), uint8_t encoding);
 SQLITE_API int sqlite3_bind_value(sqlite3_stmt*, int, const sqlite3_value*);
 SQLITE_API int sqlite3_bind_pointer(sqlite3_stmt*, int, void*, const char*,void(*)(void*));
 SQLITE_API int sqlite3_bind_zeroblob(sqlite3_stmt*, int, int n);
@@ -4962,7 +4962,7 @@ SQLITE_API const void *sqlite3_column_blob(sqlite3_stmt*, int iCol);
 SQLITE_API double sqlite3_column_double(sqlite3_stmt*, int iCol);
 SQLITE_API int sqlite3_column_int(sqlite3_stmt*, int iCol);
 SQLITE_API sqlite3_int64 sqlite3_column_int64(sqlite3_stmt*, int iCol);
-SQLITE_API const unsigned char *sqlite3_column_text(sqlite3_stmt*, int iCol);
+SQLITE_API const uint8_t *sqlite3_column_text(sqlite3_stmt*, int iCol);
 SQLITE_API const void *sqlite3_column_text16(sqlite3_stmt*, int iCol);
 SQLITE_API sqlite3_value *sqlite3_column_value(sqlite3_stmt*, int iCol);
 SQLITE_API int sqlite3_column_bytes(sqlite3_stmt*, int iCol);
@@ -5429,7 +5429,7 @@ SQLITE_API double sqlite3_value_double(sqlite3_value*);
 SQLITE_API int sqlite3_value_int(sqlite3_value*);
 SQLITE_API sqlite3_int64 sqlite3_value_int64(sqlite3_value*);
 SQLITE_API void *sqlite3_value_pointer(sqlite3_value*, const char*);
-SQLITE_API const unsigned char *sqlite3_value_text(sqlite3_value*);
+SQLITE_API const uint8_t *sqlite3_value_text(sqlite3_value*);
 SQLITE_API const void *sqlite3_value_text16(sqlite3_value*);
 SQLITE_API const void *sqlite3_value_text16le(sqlite3_value*);
 SQLITE_API const void *sqlite3_value_text16be(sqlite3_value*);
@@ -5780,7 +5780,7 @@ SQLITE_API void sqlite3_result_int64(sqlite3_context*, sqlite3_int64);
 SQLITE_API void sqlite3_result_null(sqlite3_context*);
 SQLITE_API void sqlite3_result_text(sqlite3_context*, const char*, int, void(*)(void*));
 SQLITE_API void sqlite3_result_text64(sqlite3_context*, const char*,sqlite3_uint64,
-                           void(*)(void*), unsigned char encoding);
+                           void(*)(void*), uint8_t encoding);
 SQLITE_API void sqlite3_result_text16(sqlite3_context*, const void*, int, void(*)(void*));
 SQLITE_API void sqlite3_result_text16le(sqlite3_context*, const void*, int,void(*)(void*));
 SQLITE_API void sqlite3_result_text16be(sqlite3_context*, const void*, int,void(*)(void*));
@@ -6028,7 +6028,7 @@ SQLITE_API int sqlite3_sleep(int);
 ** memset(zPathBuf, 0, sizeof(zPathBuf));
 ** WideCharToMultiByte(CP_UTF8, 0, zPath, -1, zPathBuf, sizeof(zPathBuf),
 ** &nbsp;     NULL, NULL);
-** sqlite3_temp_directory = sqlite3_mprintf("%s", zPathBuf);
+** sqlite3_temp_directory = sqlite3_mDBG_PRT("%s", zPathBuf);
 ** </pre></blockquote>
 */
 SQLITE_API SQLITE_EXTERN char *sqlite3_temp_directory;
@@ -6636,7 +6636,7 @@ SQLITE_API int sqlite3_enable_load_extension(sqlite3 *db, int onoff);
 ** </pre></blockquote>)^
 **
 ** If the xEntryPoint routine encounters an error, it should make *pzErrMsg
-** point to an appropriate error message (obtained from [sqlite3_mprintf()])
+** point to an appropriate error message (obtained from [sqlite3_mDBG_PRT()])
 ** and return an appropriate [error code].  ^SQLite ensures that *pzErrMsg
 ** is NULL before calling the xEntryPoint().  ^SQLite will invoke
 ** [sqlite3_free()] on *pzErrMsg after xEntryPoint() returns.  ^If any
@@ -6850,19 +6850,19 @@ struct sqlite3_index_info {
   int nConstraint;           /* Number of entries in aConstraint */
   struct sqlite3_index_constraint {
      int iColumn;              /* Column constrained.  -1 for ROWID */
-     unsigned char op;         /* Constraint operator */
-     unsigned char usable;     /* True if this constraint is usable */
+     uint8_t op;         /* Constraint operator */
+     uint8_t usable;     /* True if this constraint is usable */
      int iTermOffset;          /* Used internally - xBestIndex should ignore */
   } *aConstraint;            /* Table of WHERE clause constraints */
   int nOrderBy;              /* Number of terms in the ORDER BY clause */
   struct sqlite3_index_orderby {
      int iColumn;              /* Column number */
-     unsigned char desc;       /* True for DESC.  False for ASC. */
+     uint8_t desc;       /* True for DESC.  False for ASC. */
   } *aOrderBy;               /* The ORDER BY clause */
   /* Outputs */
   struct sqlite3_index_constraint_usage {
     int argvIndex;           /* if >0, constraint is part of argv to xFilter */
-    unsigned char omit;      /* Do not code a test for this constraint */
+    uint8_t omit;      /* Do not code a test for this constraint */
   } *aConstraintUsage;
   int idxNum;                /* Number used to identify the index */
   char *idxStr;              /* String, possibly obtained from sqlite3_malloc */
@@ -6985,7 +6985,7 @@ SQLITE_API int sqlite3_drop_modules(
 ** common to all module implementations.
 **
 ** ^Virtual tables methods can set an error message by assigning a
-** string obtained from [sqlite3_mprintf()] to zErrMsg.  The method should
+** string obtained from [sqlite3_mDBG_PRT()] to zErrMsg.  The method should
 ** take care that any prior string is freed by a call to [sqlite3_free()]
 ** prior to assigning a new string to zErrMsg.  ^After the error message
 ** is delivered up to the client application, the string will be automatically
@@ -6994,7 +6994,7 @@ SQLITE_API int sqlite3_drop_modules(
 struct sqlite3_vtab {
   const sqlite3_module *pModule;  /* The module for this virtual table */
   int nRef;                       /* Number of open cursors */
-  char *zErrMsg;                  /* Error message from sqlite3_mprintf() */
+  char *zErrMsg;                  /* Error message from sqlite3_mDBG_PRT() */
   /* Virtual table implementations will typically add additional fields */
 };
 
@@ -7827,7 +7827,7 @@ SQLITE_API char *sqlite3_str_finish(sqlite3_str*);
 ** from [sqlite3_str_new()].
 **
 ** ^The [sqlite3_str_appendf(X,F,...)] and 
-** [sqlite3_str_vappendf(X,F,V)] interfaces uses the [built-in printf]
+** [sqlite3_str_vappendf(X,F,V)] interfaces uses the [built-in DBG_PRT]
 ** functionality of SQLite to append formatted text onto the end of 
 ** [sqlite3_str] object X.
 **
@@ -9504,7 +9504,7 @@ SQLITE_API int sqlite3_system_errno(sqlite3*);
 ** the most recent version.
 */
 typedef struct sqlite3_snapshot {
-  unsigned char hidden[48];
+  uint8_t hidden[48];
 } sqlite3_snapshot;
 
 /*
@@ -9709,7 +9709,7 @@ SQLITE_API SQLITE_EXPERIMENTAL int sqlite3_snapshot_recover(sqlite3 *db, const c
 ** This interface is only available if SQLite is compiled with the
 ** [SQLITE_ENABLE_DESERIALIZE] option.
 */
-SQLITE_API unsigned char *sqlite3_serialize(
+SQLITE_API uint8_t *sqlite3_serialize(
   sqlite3 *db,           /* The database connection */
   const char *zSchema,   /* Which DB to serialize. ex: "main", "temp", ... */
   sqlite3_int64 *piSize, /* Write size of the DB here, if not NULL */
@@ -9764,7 +9764,7 @@ SQLITE_API unsigned char *sqlite3_serialize(
 SQLITE_API int sqlite3_deserialize(
   sqlite3 *db,            /* The database connection */
   const char *zSchema,    /* Which DB to reopen with the deserialization */
-  unsigned char *pData,   /* The serialized database content */
+  uint8_t *pData,   /* The serialized database content */
   sqlite3_int64 szDb,     /* Number bytes in the deserialization */
   sqlite3_int64 szBuf,    /* Total size of buffer pData[] */
   unsigned mFlags         /* Zero or more SQLITE_DESERIALIZE_* flags */
@@ -10524,7 +10524,7 @@ SQLITE_API int sqlite3changeset_op(
 */
 SQLITE_API int sqlite3changeset_pk(
   sqlite3_changeset_iter *pIter,  /* Iterator object */
-  unsigned char **pabPK,          /* OUT: Array of boolean - true for PK cols */
+  uint8_t **pabPK,          /* OUT: Array of boolean - true for PK cols */
   int *pnCol                      /* OUT: Number of entries in output array */
 );
 
@@ -11638,8 +11638,8 @@ typedef void (*fts5_extension_function)(
 );
 
 struct Fts5PhraseIter {
-  const unsigned char *a;
-  const unsigned char *b;
+  const uint8_t *a;
+  const uint8_t *b;
 };
 
 /*

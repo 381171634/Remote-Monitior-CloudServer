@@ -1,5 +1,21 @@
+/*
+ ============================================================================
+ Name        : proc.c
+ Author      : wy
+ Version     :
+ Copyright   : Your copyright notice
+ Description : 协议处理
+            head_low    head_high   len_l len_h ctrl    data    sum_check
+              0xa5         0x5a       xx    xx   xx    xx...xx     xx
+ ============================================================================
+ */
+
 #include "includes.h"
-//协议初始化
+
+/*============================================================================
+ 协议通道初始化
+ procRBuf：通道指针
+ ============================================================================*/
 static void proc_procInit(recvChannelfTypedef *procRBuf)
 {
     memset((void *)procRBuf,0,sizeof(recvChannelfTypedef));
@@ -7,11 +23,16 @@ static void proc_procInit(recvChannelfTypedef *procRBuf)
     procRBuf->isLocked = 0;
 }
 
-//从socket读出数据放入ringbuf
+/*============================================================================
+ 从套接字读数据
+ procRBuf：通道指针
+ return：读到的数据长度
+ ============================================================================*/
 static int proc_readSocket(int socket_id,recvChannelfTypedef *procBuf)
 {
     int revlen,i;
-    unsigned char buf[PROC_SOCKET_BUF_LEN] = {0};
+    uint8_t buf[PROC_SOCKET_BUF_LEN] = {0};
+    //阻塞
     revlen = recv(socket_id,buf,PROC_SOCKET_BUF_LEN,0);
 
     if(revlen > 0)
@@ -25,20 +46,26 @@ static int proc_readSocket(int socket_id,recvChannelfTypedef *procBuf)
     return revlen;
 }
 
-//重置协议状态机
+/*============================================================================
+ 重置协议状态机
+ procRBuf：通道指针
+ ============================================================================*/
 static void rstProcState(recvChannelfTypedef *procRBuf)
 {
     procRBuf->procState = PROC_FIND_1ST_HEAD;
 }
 
-//搜协议报文
-//返回 1：搜到   0：未搜到
+/*============================================================================
+ 按协议搜报文
+ procRBuf：通道指针
+ return：0->未搜到  1->搜到
+ ============================================================================*/
 static int proc_getProc(recvChannelfTypedef *procRBuf)
 {
     int res = 0;
     int i;
-    unsigned char byte;
-    unsigned char sum = 0;
+    uint8_t byte;
+    uint8_t sum = 0;
 
     if(procRBuf->isLocked)
     {
@@ -124,13 +151,18 @@ static int proc_getProc(recvChannelfTypedef *procRBuf)
     return res;
 }
 
-//协议组包
-static int proc_makeAproc(unsigned char *pSrc,unsigned short len)
+/*============================================================================
+ 协议组包
+ pSrc：报文缓存指针
+ len：控制字+数据域长度
+ return：此包报文总长度
+ ============================================================================*/
+static int proc_makeAproc(uint8_t *pSrc,unsigned short len)
 {
     int i;
     int p = 0;
-    unsigned char *pContent = pSrc + 4;
-    unsigned char sum = 0;
+    uint8_t *pContent = pSrc + 4;
+    uint8_t sum = 0;
 
     pSrc[p++] = 0xa5;
     pSrc[p++] = 0x5a;
@@ -146,7 +178,9 @@ static int proc_makeAproc(unsigned char *pSrc,unsigned short len)
     return (len + 2 + 2 + 1);
 }
 
-//函数注册
+/*============================================================================
+ 协议接口函数注册
+ ============================================================================*/
 api_procCommunicateTypedef api_procComm = {
     .procInit       = proc_procInit,
     .readSocket     = proc_readSocket,
