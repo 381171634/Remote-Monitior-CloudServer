@@ -214,6 +214,8 @@ static int deal_phone_query(clientClassTypedef *cc)
             if(cc->pRecord.pkgTotal == 1)
             {
                 ackBuf[len_t++] = 0x04;
+                ackBuf[len_t++] = (uint8_t)cc->pRecord.pkgTotal;
+                ackBuf[len_t++] = (uint8_t)(++cc->pRecord.pkgSent);
                 memcpy(ackBuf + len_t,&cc->pRecord.recordCnt,2);
                 len_t += 2;
                 memcpy(ackBuf + len_t,&cc->pRecord.recordBuf[cc->pRecord.pUpload],sizeof(SampleDataTypedef) * cc->pRecord.recordCnt);
@@ -229,13 +231,14 @@ static int deal_phone_query(clientClassTypedef *cc)
             {
                 //有后续帧的应答 第一包
                 ackBuf[len_t++] = 0x14;
-                recordSentCnt = (PROC_CONTENT_LEN - 6 - 2) / sizeof(SampleDataTypedef);
+                recordSentCnt = (LEN_OF_ONE_PKG) / sizeof(SampleDataTypedef);
                 DBG_PRT("recordSentCnt:%d\n",recordSentCnt);
+                ackBuf[len_t++] = (uint8_t)cc->pRecord.pkgTotal;
+                ackBuf[len_t++] = (uint8_t)(++cc->pRecord.pkgSent);
                 memcpy(ackBuf + len_t,&recordSentCnt,2);
                 len_t += 2;
                 memcpy(ackBuf + len_t,&cc->pRecord.recordBuf[cc->pRecord.pUpload],sizeof(SampleDataTypedef) * recordSentCnt);
                 len_t += sizeof(SampleDataTypedef) * recordSentCnt;
-                cc->pRecord.pkgTotal--;
                 cc->pRecord.pUpload += recordSentCnt;
 
                 ackLen = api_procComm.makeAproc(ackBuf,len_t - 4);
@@ -269,11 +272,13 @@ static int deal_phone_follow_ack(clientClassTypedef *cc)
     unsigned short ackLen = 0;
     int recordSentCnt = 0;
 
-    if(cc->pRecord.pkgTotal == 1)
+    if(cc->pRecord.pkgTotal - cc->pRecord.pkgSent == 1)
     {
         recordSentCnt = cc->pRecord.lastPkgCnt;
-        DBG_PRT("cc->pRecord.pkgTotal:%d\n",cc->pRecord.pkgTotal);
+        DBG_PRT("cc->pRecord.pkgSent:%d\n",cc->pRecord.pkgSent);
         ackBuf[len_t++] = 0x04;
+        ackBuf[len_t++] = (uint8_t)cc->pRecord.pkgTotal;
+        ackBuf[len_t++] = (uint8_t)(++cc->pRecord.pkgSent);
         memcpy(ackBuf + len_t,&recordSentCnt,2);
         len_t += 2;
         memcpy(ackBuf + len_t,&cc->pRecord.recordBuf[cc->pRecord.pUpload],sizeof(SampleDataTypedef) * recordSentCnt);
@@ -285,25 +290,23 @@ static int deal_phone_follow_ack(clientClassTypedef *cc)
         memset((void *)&cc->pRecord,0,sizeof(foundRecordsCacheTypedef));
 
     }
-    else if(cc->pRecord.pkgTotal > 1)
+    else if(cc->pRecord.pkgTotal - cc->pRecord.pkgSent > 1)
     {
-        DBG_PRT("cc->pRecord.pkgTotal:%d\n",cc->pRecord.pkgTotal);
+        DBG_PRT("cc->pRecord.pkgSent:%d\n",cc->pRecord.pkgSent);
 
         ackBuf[len_t++] = 0x14;
-        recordSentCnt = (PROC_CONTENT_LEN - 6 - 2) / sizeof(SampleDataTypedef);
+        recordSentCnt = (LEN_OF_ONE_PKG) / sizeof(SampleDataTypedef);
+        ackBuf[len_t++] = (uint8_t)cc->pRecord.pkgTotal;
+        ackBuf[len_t++] = (uint8_t)(++cc->pRecord.pkgSent);
         memcpy(ackBuf + len_t,&recordSentCnt,2);
         len_t += 2;
         memcpy(ackBuf + len_t,&cc->pRecord.recordBuf[cc->pRecord.pUpload],sizeof(SampleDataTypedef) * recordSentCnt);
         len_t += sizeof(SampleDataTypedef) * recordSentCnt;
-        cc->pRecord.pkgTotal--;
+        cc->pRecord.pkgSent++;
         cc->pRecord.pUpload += recordSentCnt;
 
         ackLen = api_procComm.makeAproc(ackBuf,len_t - 4);
         send(cc->socket,ackBuf,ackLen,0);
-    }
-    else if(cc->pRecord.pkgTotal == 0)
-    {
-
     }
 
     return res;

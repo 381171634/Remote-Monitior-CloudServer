@@ -483,7 +483,6 @@ static int api_devPublish(recordTypedef *record,sqlite3 *db)
 static int api_phoneQuery(uint8_t *dev_id,int startTick,int endTick,foundRecordsCacheTypedef *pRecord,sqlite3 *db)
 {
     int res = SQLITE_OK;
-    int lenOfOnePgk = PROC_CONTENT_LEN - 8;
     recordFindTypedef recordFind;
     memset((void *)&recordFind,0,sizeof(recordFindTypedef));
     memcpy(recordFind.dev_id,dev_id,16);
@@ -513,9 +512,11 @@ static int api_phoneQuery(uint8_t *dev_id,int startTick,int endTick,foundRecords
 
                     pRecord->recordCnt = recordFind.findcnt;
                     pRecord->recordBuf = (SampleDataTypedef *)malloc(sizeof(SampleDataTypedef) * pRecord->recordCnt);
+                    
                     memset(pRecord->recordBuf,0,sizeof(SampleDataTypedef) * pRecord->recordCnt);
-                    pRecord->pkgTotal = (recordFind.findcnt * sizeof(SampleDataTypedef) + lenOfOnePgk - 1) / lenOfOnePgk;
-                    pRecord->lastPkgCnt = recordFind.findcnt % (PROC_CONTENT_LEN / sizeof(SampleDataTypedef));
+                    pRecord->pkgTotal = (recordFind.findcnt * sizeof(SampleDataTypedef) + LEN_OF_ONE_PKG - 1) / LEN_OF_ONE_PKG;
+                    pRecord->pkgSent = 0;
+                    pRecord->lastPkgCnt = recordFind.findcnt % (LEN_OF_ONE_PKG / sizeof(SampleDataTypedef));
                     memcpy((void *)pRecord->recordBuf,(void *)recordFind.sData,sizeof(SampleDataTypedef) * pRecord->recordCnt);
                     res = TRUE;
                 }

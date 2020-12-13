@@ -5,6 +5,7 @@
 
 #define PROC_BUF_LEN            2048    //协议环形缓存长度
 #define PROC_CONTENT_LEN        512     //协议内容长度
+#define LEN_OF_ONE_PKG          (PROC_CONTENT_LEN - 10)//反历史数据时，一包报文中的最大数据域长度
 #define PROC_SOCKET_BUF_LEN     512     //协议套接字读出最大长度
 
 

@@ -8,10 +8,11 @@
 
 typedef struct{
     SampleDataTypedef *recordBuf;   //记录数组
+    unsigned short pUpload;         //上传记录指针
     unsigned short recordCnt;       //总记录数
     unsigned short lastPkgCnt;      //最后一包中包含的记录数
     unsigned short pkgTotal;        //总包数
-    unsigned short pUpload;         //上传记录指针
+    unsigned short pkgSent;         //已经返回的包数
 }foundRecordsCacheTypedef;
 
 typedef struct{
