@@ -514,7 +514,7 @@ static int api_phoneQuery(uint8_t *dev_id,int startTick,int endTick,foundRecords
                     pRecord->recordBuf = (SampleDataTypedef *)malloc(sizeof(SampleDataTypedef) * pRecord->recordCnt);
                     
                     memset(pRecord->recordBuf,0,sizeof(SampleDataTypedef) * pRecord->recordCnt);
-                    pRecord->pkgTotal = (recordFind.findcnt * sizeof(SampleDataTypedef) + LEN_OF_ONE_PKG - 1) / LEN_OF_ONE_PKG;
+                    pRecord->pkgTotal = (recordFind.findcnt + (LEN_OF_ONE_PKG / sizeof(SampleDataTypedef) - 1)) / (LEN_OF_ONE_PKG / sizeof(SampleDataTypedef));
                     pRecord->pkgSent = 0;
                     pRecord->lastPkgCnt = recordFind.findcnt % (LEN_OF_ONE_PKG / sizeof(SampleDataTypedef));
                     memcpy((void *)pRecord->recordBuf,(void *)recordFind.sData,sizeof(SampleDataTypedef) * pRecord->recordCnt);

@@ -302,7 +302,6 @@ static int deal_phone_follow_ack(clientClassTypedef *cc)
         len_t += 2;
         memcpy(ackBuf + len_t,&cc->pRecord.recordBuf[cc->pRecord.pUpload],sizeof(SampleDataTypedef) * recordSentCnt);
         len_t += sizeof(SampleDataTypedef) * recordSentCnt;
-        cc->pRecord.pkgSent++;
         cc->pRecord.pUpload += recordSentCnt;
 
         ackLen = api_procComm.makeAproc(ackBuf,len_t - 4);
