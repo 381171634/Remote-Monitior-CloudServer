@@ -360,8 +360,8 @@ void app_process(int s_scb_nbr)
             res_getProc = api_procComm.getProc(&cc.recvBuf);
             if(res_getProc == 1)
             {
-                //如果不是后续帧应答
-                if(cc.recvBuf.contentBuf[0] != CTRL_PHONE_FOLLOW_ACK)
+                //如果不是后续帧应答则清空查历史数据过程，同时，来的是心跳时不清
+                if(cc.recvBuf.contentBuf[0] != CTRL_PHONE_FOLLOW_ACK && cc.recvBuf.contentBuf[0] != CTRL_DEV_HEART)
                 {
                     //如果后续帧缓存区已经申请，则清空
                     if(cc.pRecord.recordBuf != 0)
