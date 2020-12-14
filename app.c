@@ -194,8 +194,8 @@ static int deal_phone_query(clientClassTypedef *cc)
     unsigned short ackLen = 0;
     uint8_t *p = &cc->recvBuf.contentBuf[1];
     uint8_t dev_id[17] = {0};
-    int startTick = 0;
-    int endTick = 0;
+    uint32_t startTick = 0;
+    uint32_t endTick = 0;
     int recordSentCnt = 0;
 
     showRBcontent(cc);
@@ -207,6 +207,7 @@ static int deal_phone_query(clientClassTypedef *cc)
         memcpy((void *)&startTick,p,sizeof(int));
         p += 4;
         memcpy((void *)&endTick,p,sizeof(int));
+        DBG_PRT("startTick:%u endTick:%u\n",startTick,endTick);
         //operate database
         res = api_DB.phoneQuery(dev_id,startTick,endTick,&cc->pRecord,cc->db);
         if(res == TRUE)

@@ -158,7 +158,7 @@ static int bsp_insert   (sqlite3 * db,recordTypedef *record,int type)
     {
         snprintf(addr,CMD_EXEC_SIZE - strlen(cmd_exec),"REPLACE INTO \"%s\" %s ",TOTAL_TABLE_NAME,INSERT_TOTAL_TABLE_PARA);
         addr += strlen(cmd_exec);
-        snprintf(addr,CMD_EXEC_SIZE - strlen(cmd_exec),"VALUES(\"%s\",%d,%d,%d,%d,%d,%d)",
+        snprintf(addr,CMD_EXEC_SIZE - strlen(cmd_exec),"VALUES(\"%s\",%d,%u,%d,%d,%d,%d)",
                                         record->dev_id,
                                         record->sData.timeTick,
                                         record->sData.tempture,
@@ -232,7 +232,7 @@ static int bsp_find     (sqlite3 * db,recordFindTypedef *paramfind,int type)
             paramfind->dev_id);
         addr += strlen(cmd_exec);
         paramfind->findcnt = 0;
-        snprintf(addr,CMD_EXEC_SIZE - strlen(cmd_exec),"Tick>=%d AND Tick<=%d",paramfind->starttick,paramfind->EndTick);
+        snprintf(addr,CMD_EXEC_SIZE - strlen(cmd_exec),"Tick>=%u AND Tick<=%u",paramfind->starttick,paramfind->EndTick);
 
         DBG_PRT("%s\n",cmd_exec);
 
@@ -279,7 +279,7 @@ static int bsp_change(sqlite3 * db,recordTypedef *record,int type)
     {
         snprintf(addr,CMD_EXEC_SIZE - strlen(cmd_exec),"UPDATE \"%s\"",TOTAL_TABLE_NAME);
         addr += strlen(cmd_exec);
-        snprintf(addr,CMD_EXEC_SIZE - strlen(cmd_exec),"SET Tick=%d WHERE DevID=\'%s\'",
+        snprintf(addr,CMD_EXEC_SIZE - strlen(cmd_exec),"SET Tick=%u WHERE DevID=\'%s\'",
                                         record->sData.timeTick,
                                         record->dev_id
                                         );
@@ -480,7 +480,7 @@ static int api_devPublish(recordTypedef *record,sqlite3 *db)
  db：数据库指针地址
  return：操作结果
  ============================================================================*/
-static int api_phoneQuery(uint8_t *dev_id,int startTick,int endTick,foundRecordsCacheTypedef *pRecord,sqlite3 *db)
+static int api_phoneQuery(uint8_t *dev_id,uint32_t startTick,uint32_t endTick,foundRecordsCacheTypedef *pRecord,sqlite3 *db)
 {
     int res = SQLITE_OK;
     recordFindTypedef recordFind;
